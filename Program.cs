@@ -1,52 +1,51 @@
-﻿SudokuGivenCalc sudokuGivenCalc = new();
+﻿using System.Text.Json;
 
-Dictionary<string, (string, int)> sudokuDictionary = sudokuGivenCalc.SudokuParser("ValidSudokus.txt");
+SudokuGivenCalc sudokuGivenCalc = new SudokuGivenCalc();
 
-var sortedDictionary = sudokuDictionary.OrderBy(x => x.Value.Item2).ToDictionary(x => x.Key, x => x.Value);
+List<SudokuData> sudokuDataList = sudokuGivenCalc.SudokuParser("ValidSudokus.txt");
 
-foreach (var key in sortedDictionary){
-    Console.WriteLine($"{key.Key}, {key.Value}");
+// Serialize the list to JSON
+string jsonString = JsonSerializer.Serialize(sudokuDataList);
 
+// Write the JSON string to a file
+File.WriteAllText("ValidSudokus.json", jsonString);
+
+class SudokuData{
+    public int Id { get; set; }
+    public string Puzzle { get; set; }
+    public string Solution { get; set; }
+    public int Count { get; set; }
 }
 
-// Returns a random puzzle with less than 30 given numbers
-List<string> keys = sortedDictionary.Keys.Where(key => sortedDictionary[key].Item2 < 30).ToList();
-Random random = new Random();
-int randomIndex = random.Next(0, keys.Count);
-string randomKey = keys[randomIndex];
-Console.WriteLine($"Random key: {randomKey}, {sortedDictionary[randomKey]}");
-
-Console.ReadKey();
 class SudokuGivenCalc{
-    public Dictionary<string, (string, int)> SudokuParser(string filename){
+    public List<SudokuData> SudokuParser(string filename){
         string[] list = File.ReadAllLines(filename);
-        Dictionary<string, (string, int)> output = new();
-        bool puzzle = true;
-        string combinedPuzzle = "";
-        string combinedSolution = "";
-        int count = 0;
-        foreach (var element in list){
-            foreach (var character in element){
-                if (character == ','){
-                    puzzle = false;
-                }
-                else if (puzzle){
-                    combinedPuzzle += character;
-                    if (character != '.'){
-                        count ++;
-                    }
-                }
-                else {
-                    combinedSolution += character;
-                }
+        List<SudokuData> output = new List<SudokuData>();
 
-            }
-            puzzle = true;
-            output.Add(combinedPuzzle, (combinedSolution, count));
-            combinedPuzzle = "";
-            combinedSolution = "";
-            count = 0;
+        int id = 0;
+        foreach (var line in list){
+            string[] parts = line.Split(',');
+
+            string puzzle = parts[0];
+            string solution = parts[1];
+
+            int count = CountFilledCells(puzzle);
+
+            output.Add(new SudokuData { Id = id, Puzzle = puzzle, Solution = solution, Count = count });
+
+            id++;
         }
         return output;
+    }
+
+    private int CountFilledCells(string puzzle)
+{
+        int count = 0;
+        foreach (char c in puzzle){
+            if (c != '.'){
+                count++;
+            }
+        }
+        return count;
     }
 }
